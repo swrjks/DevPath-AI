@@ -7,6 +7,7 @@ import TutorialModules from "@/components/dashboard/TutorialModules";
 import StructuredLessonsDashboard from "@/components/dashboard/StructuredLessonsDashboard";
 import QuizView from "@/components/dashboard/QuizView";
 import GuidedCodingView from "@/components/dashboard/GuidedCodingView";
+import ProjectFlowchart from "@/components/dashboard/ProjectFlowchart";
 
 const ProjectItem = ({
   title,
@@ -21,7 +22,7 @@ const ProjectItem = ({
   title: string;
   isActive: boolean;
   onClick: () => void;
-  onMouseEnter: () => void;
+  onMouseEnter: (e: React.MouseEvent) => void;
   onMouseLeave: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   isRenaming?: boolean;
@@ -48,7 +49,7 @@ const ProjectItem = ({
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onContextMenu={onContextMenu}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors group ${isActive
+        className={`relative w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors group ${isActive
           ? "bg-secondary/80 text-foreground"
           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
           }`}
@@ -78,6 +79,7 @@ const Home = () => {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
   const [hoveredSidebarProject, setHoveredSidebarProject] = useState<string | null>(null);
+  const [hoveredY, setHoveredY] = useState<number | null>(null);
   const [activeView, setActiveView] = useState<string>("dashboard"); // 'dashboard', 'tutorial-modules', 'structured-lessons', 'quiz', 'guided-coding'
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
 
@@ -92,10 +94,9 @@ const Home = () => {
     }
   };
 
-  const [projects, setProjects] = useState<string[]>([
-    "React Hook Tutorial", 
-    "Tic Tac Toe"
-  ]);
+  const [activeTab, setActiveTab] = useState<'lessons' | 'projects'>('lessons');
+  const [lessons, setLessons] = useState<string[]>(["React Hook Tutorial"]);
+  const [projects, setProjects] = useState<string[]>(["Tic Tac Toe"]);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, title: string } | null>(null);
   const [renamingProject, setRenamingProject] = useState<string | null>(null); // Track which project is being renamed
 
@@ -114,21 +115,27 @@ const Home = () => {
     setRenamingProject(null);
     if (!newName || newName.trim() === "" || newName === oldName) return;
     
+    const currentList = activeTab === 'lessons' ? lessons : projects;
+    const setCurrentList = activeTab === 'lessons' ? setLessons : setProjects;
+
     // Check if new name already exists
-    if (projects.includes(newName.trim())) {
+    if (currentList.includes(newName.trim())) {
       // Could show toast error here, for now just abort
       return;
     }
 
-    setProjects(projects.map(p => p === oldName ? newName.trim() : p));
+    setCurrentList(currentList.map(p => p === oldName ? newName.trim() : p));
     if (activeProject === oldName) setActiveProject(newName.trim());
     if (hoveredProject === oldName) setHoveredProject(newName.trim());
   };
 
   const handleDeleteProject = () => {
     if (!contextMenu) return;
+    const currentList = activeTab === 'lessons' ? lessons : projects;
+    const setCurrentList = activeTab === 'lessons' ? setLessons : setProjects;
+
     if (window.confirm(`Are you sure you want to delete "${contextMenu.title}"?`)) {
-      setProjects(projects.filter(p => p !== contextMenu.title));
+      setCurrentList(currentList.filter(p => p !== contextMenu.title));
       if (activeProject === contextMenu.title) setActiveProject(null);
       if (hoveredProject === contextMenu.title) setHoveredProject(null);
     }
@@ -171,38 +178,61 @@ const Home = () => {
               </button>
             </div>
 
-            {/* Projects Section */}
+            {/* Sidebar Lists Section */}
             <div>
-              <div className="mb-4 flex flex-col gap-2">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Projects</h3>
+              <div className="mb-4 flex flex-col gap-3">
+                {/* Sliding Toggle */}
+                <div className="flex bg-secondary/30 p-1 rounded-lg relative">
+                  <div 
+                    className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-secondary rounded-md shadow flex border border-border/50 transition-all duration-300 pointer-events-none" 
+                    style={{ left: activeTab === 'lessons' ? '4px' : 'calc(50% + 0px)' }}
+                  />
+                  <button 
+                    className={`flex-1 text-xs font-semibold py-1.5 text-center relative z-10 transition-colors ${activeTab === 'lessons' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                    onClick={() => setActiveTab('lessons')}
+                  >
+                    Lessons
+                  </button>
+                  <button 
+                    className={`flex-1 text-xs font-semibold py-1.5 text-center relative z-10 transition-colors ${activeTab === 'projects' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                    onClick={() => setActiveTab('projects')}
+                  >
+                    Projects
+                  </button>
+                </div>
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    // Find the next available "Project N" number
-                    let newIndex = projects.length + 1;
-                    while(projects.includes(`Project ${newIndex}`)) {
+                    const currentList = activeTab === 'lessons' ? lessons : projects;
+                    const setCurrentList = activeTab === 'lessons' ? setLessons : setProjects;
+                    const prefix = activeTab === 'lessons' ? 'Lesson' : 'Project';
+                    let newIndex = currentList.length + 1;
+                    while(currentList.includes(`${prefix} ${newIndex}`)) {
                       newIndex++;
                     }
-                    setProjects([...projects, `Project ${newIndex}`]);
+                    setCurrentList([...currentList, `${prefix} ${newIndex}`]);
                   }}
                   className="w-full border-dashed border-border/60 text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 h-9"
                 >
                   <Plus size={14} />
-                  Add Project
+                  Add {activeTab === 'lessons' ? 'Lesson' : 'Project'}
                 </Button>
               </div>
 
               <div className="space-y-1">
-                {projects.map((title) => (
+                {(activeTab === 'lessons' ? lessons : projects).map((title) => (
                   <ProjectItem
                     key={title}
                     title={title}
                     isActive={activeProject === title}
                     onClick={() => handleProjectClick(title)}
-                    onMouseEnter={() => {
+                    onMouseEnter={(e) => {
                       setHoveredProject(title);
                       setHoveredSidebarProject(title); // Store this so it persists if we hover the sidebar next
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setHoveredY(rect.top + rect.height / 2);
                     }}
                     onMouseLeave={() => setHoveredProject(null)}
                     onContextMenu={(e) => handleContextMenu(e, title)}
@@ -267,7 +297,7 @@ const Home = () => {
             animate={{ width: 256 + 16, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: -16 }}
             className="absolute left-64 z-40 flex flex-col h-fit max-h-[85vh] pl-4"
-            style={{ top: 'max(2rem, calc(50% - 40vh))' }}
+            style={{ top: hoveredY !== null ? Math.max(16, hoveredY - 150) : 'max(2rem, calc(50% - 40vh))' }}
             onMouseEnter={() => setIsHoveringSidebar(true)}
             onMouseLeave={() => {
               setIsHoveringSidebar(false);
@@ -293,71 +323,77 @@ const Home = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-none">
-                {/* Learn */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
-                    <BookOpen size={12} className="text-primary/70" />
-                    Learn
-                  </div>
-                    <div className="flex flex-col space-y-1 pl-1">
-                    <button 
-                      onClick={() => setActiveView("tutorial-modules")}
-                      className="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
-                    >
-                      Tutorial Modules
-                    </button>
-                    <button 
-                      onClick={() => setActiveView("structured-lessons")}
-                      className="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
-                    >
-                      Structured Lessons
-                    </button>
-                  </div>
-                </div>
+                {activeTab === 'lessons' && (
+                  <>
+                    {/* Learn */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
+                        <BookOpen size={12} className="text-primary/70" />
+                        Learn
+                      </div>
+                        <div className="flex flex-col space-y-1 pl-1">
+                        <button 
+                          onClick={() => setActiveView("tutorial-modules")}
+                          className="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
+                        >
+                          Tutorial Modules
+                        </button>
+                        <button 
+                          onClick={() => setActiveView("structured-lessons")}
+                          className="w-full text-left px-3 py-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
+                        >
+                          Structured Lessons
+                        </button>
+                      </div>
+                    </div>
 
-                {/* Practice */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
-                    <PenTool size={12} className="text-accent/70" />
-                    Practice
-                  </div>
-                  <div className="flex flex-col space-y-0.5 pl-1">
-                    <button 
-                      onClick={() => {
-                        setActiveModuleId(null);
-                        setActiveView("quiz");
-                      }}
-                      className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
-                    >
-                      Quizzes
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setActiveModuleId(null);
-                        setActiveView("coding-tasks-hub");
-                      }}
-                      className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
-                    >
-                      Coding Tasks
-                    </button>
-                  </div>
-                </div>
+                    {/* Practice */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
+                        <PenTool size={12} className="text-accent/70" />
+                        Practice
+                      </div>
+                      <div className="flex flex-col space-y-0.5 pl-1">
+                        <button 
+                          onClick={() => {
+                            setActiveModuleId(null);
+                            setActiveView("quiz");
+                          }}
+                          className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
+                        >
+                          Quizzes
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setActiveModuleId(null);
+                            setActiveView("coding-tasks-hub");
+                          }}
+                          className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
+                        >
+                          Coding Tasks
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Build */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
-                    <Wrench size={12} className="text-green-500/70" />
-                    Build
+                {activeTab === 'projects' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mb-1 px-2 pb-0.5 border-b border-border/30">
+                      <Wrench size={12} className="text-green-500/70" />
+                      Build
+                    </div>
+                    <div className="flex flex-col space-y-0.5 pl-1">
+                      <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
+                        Project Guide
+                      </button>
+                      <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
+                        Build-with-me Coding
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col space-y-0.5 pl-1">
-                    <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
-                      Guided Project Steps
-                    </button>
-                    <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
-                      Build-with-me Coding
-                    </button>
-                  </div>
-                </div>
+                )}
 
                 {/* AI Mentor */}
                 <div className="space-y-1">
@@ -367,7 +403,7 @@ const Home = () => {
                   </div>
                   <div className="flex flex-col space-y-0.5 pl-1">
                     <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
-                      Ask Questions
+                      Ask Question
                     </button>
                   </div>
                 </div>
@@ -379,8 +415,11 @@ const Home = () => {
                     Graph
                   </div>
                   <div className="flex flex-col space-y-0.5 pl-1">
-                    <button className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all">
-                      Concept Graph
+                    <button 
+                      onClick={() => setActiveView("project-flowchart")}
+                      className="w-full text-left px-3 py-1.5 rounded-md text-xs font-medium text-foreground/80 hover:bg-secondary hover:text-foreground hover:shadow-sm transition-all"
+                    >
+                      {activeTab === 'projects' ? 'Project Flowchart' : 'Concept Graph'}
                     </button>
                   </div>
                 </div>
@@ -398,7 +437,9 @@ const Home = () => {
           setHoveredProject(null);
         }}
       >
-        {activeView === "tutorial-modules" ? (
+        {activeView === "project-flowchart" ? (
+          <ProjectFlowchart />
+        ) : activeView === "tutorial-modules" ? (
           <TutorialModules />
         ) : activeView === "structured-lessons" ? (
           <StructuredLessonsDashboard 
