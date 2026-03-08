@@ -1,0 +1,50 @@
+# AI for Bharat - Project Dependencies
+
+This project uses a full JavaScript stack (Node.js/React). The AI processing has been ported from Python to the Node.js backend, so there are no pip (Python) dependencies required for this version.
+
+## Frontend Dependencies
+To install frontend dependencies, navigate to the `frontend` directory and run:
+```bash
+cd frontend
+npm install
+```
+
+### Key Frontend Packages:
+- **Core**: react, react-dom, react-router-dom
+- **Build Tool**: vite, @vitejs/plugin-react-swc
+- **Styling**: tailwindcss, class-variance-authority, clsx, tailwind-merge, tailwindcss-animate
+- **UI Components (shadcn/ui)**: @radix-ui/react-* (accordion, dialog, dropdown-menu, popover, tabs, etc.)
+- **Icons & Animations**: lucide-react, framer-motion
+- **Markdown Rendering**: react-markdown, remark-gfm
+- **Code Editor**: @monaco-editor/react
+- **Data Visualization**: recharts
+- **Authentication**: @react-oauth/google
+- **Forms & Validation**: react-hook-form, zod
+- **Data Fetching**: @tanstack/react-query
+
+## Backend Dependencies
+To install backend dependencies, navigate to the `backend` directory and run:
+```bash
+cd backend
+npm install
+```
+
+### Key Backend Packages:
+- **Core**: express, cors, dotenv
+- **AI Integration**: openai
+- **Utilities**: youtube-transcript, uuid, react-markdown
+
+## Running the Application
+To run the application locally, you will need two terminal windows:
+
+1. **Start Backend Server**:
+```bash
+cd backend
+npm start
+```
+
+2. **Start Frontend Development Server**:
+```bash
+cd frontend
+npm run dev
+```
